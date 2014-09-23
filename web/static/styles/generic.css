@@ -1,5 +1,7 @@
+@import url(http://fonts.googleapis.com/css?family=Open+Sans:400italic,600italic,700italic,300,700,600,400);
+
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Open Sans', Helvetica, sans-serif;
   transition: opacity ease-in 0.2s;
   font-size: 85%;
   /*margin: auto;*/
