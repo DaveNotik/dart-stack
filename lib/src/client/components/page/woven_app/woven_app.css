@@ -41,11 +41,15 @@
 }
 
 #page-title {
+  font-weight: 300;
+  font-size: 1.2em;
   opacity: 0;
   transition: .5s opacity;
 }
 
 #sidebar-title {
+  font-size: 1.2em;
+  font-weight: 300;
   opacity: 1;
   transition: .5s opacity;
 }
