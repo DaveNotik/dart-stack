@@ -1,6 +1,8 @@
 dart-communities
 ==========
 
+[![Join the chat at https://gitter.im/woven/dart-communities](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/woven/dart-communities?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This demonstrates a fairly fleshed out client and server Dart application. It's a tool that lets people share across various communities.
 
 It's free and open source. We hope it helps others as they navigate the world of Dart and Polymer, and we hope it helps us as others scrutinize our approach and help us improve.
