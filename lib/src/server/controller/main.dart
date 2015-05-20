@@ -149,79 +149,78 @@ class MainController {
   /**
    * Crawl for and get a preview for a given uri/link.
    */
-  static getUriPreview(App app, HttpRequest request) {
-    HttpResponse response = request.response;
+  static getUriPreview(App app, HttpRequest request) async {
     String dataReceived;
 
-    return request.listen((List<int> buffer) {
+    await for (List<int> buffer in request.listen) {
       dataReceived = new String.fromCharCodes(buffer);
-    }).asFuture().then((_) async {
-      Map data = JSON.decode(dataReceived);
-      String itemId = data['itemId'];
-      String authToken = data['authToken'];
+    }
 
-      var crawler = new CrawlerUtil();
+    Map data = JSON.decode(dataReceived);
+    String itemId = data['itemId'];
+    String authToken = data['authToken'];
 
-      Map itemMap = await Firebase.get('/items/$itemId.json');
-      String uri = itemMap['url'];
+    var crawler = new CrawlerUtil();
 
-      // Crawl for some data.
-      Response res = await crawler.getPreview(Uri.parse(uri));
-      if (res.success == false) return Response.fromError('Could not fetch from that URL.');
+    Map itemMap = await Firebase.get('/items/$itemId.json');
+    String uri = itemMap['url'];
 
-      UriPreview preview = UriPreview.fromJson(res.data);
-      var response = new Response();
-      if (preview.imageOriginalUrl == null || preview.imageOriginalUrl.isEmpty) {
-        // Save the preview.
-        String name = await Firebase.post('/uri_previews.json', preview.toJson(), auth: authToken);
-        Map updates = {};
-        updates['uriPreviewId'] = name;
+    // Crawl for some data.
+    Response res = await crawler.getPreview(Uri.parse(uri));
+    if (res.success == false) return Response.fromError('Could not fetch from that URL.');
 
-        // If no subject/body, use preview's title/teaser.
-        if (itemMap['subject'] == null) updates['subject'] = preview.title;
-        if (itemMap['body'] == null) updates['body'] = preview.teaser;
+    UriPreview preview = UriPreview.fromJson(res.data);
+    var response = new Response();
+    if (preview.imageOriginalUrl == null || preview.imageOriginalUrl.isEmpty) {
+      // Save the preview.
+      String name = await Firebase.post('/uri_previews.json', preview.toJson(), auth: authToken);
+      Map updates = {};
+      updates['uriPreviewId'] = name;
 
-        // Update the item with a reference to the preview.
-        ItemModel.update(itemId, updates, authToken);
+      // If no subject/body, use preview's title/teaser.
+      if (itemMap['subject'] == null) updates['subject'] = preview.title;
+      if (itemMap['body'] == null) updates['body'] = preview.teaser;
 
-        // Return the preview information.
-        response.data = preview;
-        return response;
-      } else {
-        // Resize and save a small preview image.
-        ImageUtil imageUtil = new ImageUtil();
-        // Set up a temporary file to write to.
-        File file = await createTemporaryFile();
-        // Download the image locally to our temporary file.
-        file = await downloadFileTo(preview.imageOriginalUrl, file);
-        // Resize the image.
-        File convertedFile = await imageUtil.resize(file, width: 225, height: 125);
-        // Save the preview.
-        String name = await Firebase.post('/uri_previews.json', preview.toJson(), auth: authToken);
-        Map updates = {};
-        updates['uriPreviewId'] = name;
-        if (itemMap['subject'] == null) updates['subject'] = preview.title;
-        if (itemMap['body'] == null) updates['body'] = preview.teaser;
+      // Update the item with a reference to the preview.
+      ItemModel.update(itemId, updates, authToken);
 
-        // Update the item with a reference to the preview.
-        ItemModel.update(itemId, updates, authToken);
+      // Return the preview information.
+      response.data = preview;
+      return response;
+    } else {
+      // Resize and save a small preview image.
+      ImageUtil imageUtil = new ImageUtil();
+      // Set up a temporary file to write to.
+      File file = await createTemporaryFile();
+      // Download the image locally to our temporary file.
+      file = await downloadFileTo(preview.imageOriginalUrl, file);
+      // Resize the image.
+      File convertedFile = await imageUtil.resize(file, width: 225, height: 125);
+      // Save the preview.
+      String name = await Firebase.post('/uri_previews.json', preview.toJson(), auth: authToken);
+      Map updates = {};
+      updates['uriPreviewId'] = name;
+      if (itemMap['subject'] == null) updates['subject'] = preview.title;
+      if (itemMap['body'] == null) updates['body'] = preview.teaser;
 
-        // Convert and save the image.
-        var extension = path.extension(preview.imageOriginalUrl.toString()).split("?")[0];
-        var filename = 'preview_small$extension';
-        var gsBucket = 'woven';
-        var gsPath = 'public/images/preview/$name/$filename';
+      // Update the item with a reference to the preview.
+      ItemModel.update(itemId, updates, authToken);
 
-        // Then upload the image to our filesystem.
-        await app.cloudStorageUtil.uploadFile(convertedFile.path, gsBucket, gsPath, public: true);
-        await file.delete();
-        // Update the preview with a reference to the cloud file.
-        preview.imageSmallLocation = gsPath;
-        await Firebase.patch('/uri_previews/$name.json', JSON.encode(preview.toJson()), auth: authToken);
-        // Return the preview information.
-        response.data = preview;
-        return response;
-      }
-    });
+      // Convert and save the image.
+      var extension = path.extension(preview.imageOriginalUrl.toString()).split("?")[0];
+      var filename = 'preview_small$extension';
+      var gsBucket = 'woven';
+      var gsPath = 'public/images/preview/$name/$filename';
+
+      // Then upload the image to our filesystem.
+      await app.cloudStorageUtil.uploadFile(convertedFile.path, gsBucket, gsPath, public: true);
+      await file.delete();
+      // Update the preview with a reference to the cloud file.
+      preview.imageSmallLocation = gsPath;
+      await Firebase.patch('/uri_previews/$name.json', JSON.encode(preview.toJson()), auth: authToken);
+      // Return the preview information.
+      response.data = preview;
+      return response;
+    }
   }
 }
